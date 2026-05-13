@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <>
-      {children}
+      <div className="pb-20">{children}</div>
       <FeedbackButton />
     </>
   );
