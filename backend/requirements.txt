@@ -1,0 +1,45 @@
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# Database — Supabase PostgreSQL
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+pgvector==0.3.6
+
+# Auth
+supabase==2.30.0
+
+# Vector DB (pgvector via asyncpg — replaces ChromaDB)
+# chromadb removed
+
+# Embeddings (local, no API key needed)
+sentence-transformers==3.3.1
+
+# Document parsing
+pypdf2==3.0.1
+python-docx==1.1.2
+python-multipart==0.0.12
+
+# LLM providers
+groq==1.2.0
+google-genai==2.2.0
+ollama==0.6.2
+
+# Scheduler
+apscheduler==3.10.4
+
+# Data handling
+pandas==2.2.3
+feedparser==6.0.11
+httpx==0.28.1
+aiofiles==24.1.0
+
+# Config
+python-dotenv==1.0.1
+pydantic==2.10.2
+pydantic-settings==2.6.1
+
+# Utilities
+tenacity==9.0.0
+loguru==0.7.3

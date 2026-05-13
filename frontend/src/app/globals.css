@@ -1,0 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer components {
+  .prose pre {
+    @apply bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-xs font-mono;
+  }
+  .prose code:not(pre code) {
+    @apply bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-xs font-mono;
+  }
+}

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+dist/
+build/
+*.egg
+.pytest_cache/
+
+# Logs
+logs/
+*.log
+
+# Data (don't commit local data)
+data/chroma_db/
+data/sqlite/
+data/uploads/
+
+# Env
+.env
+.env.local
+
+# Node
+node_modules/
+.next/
+out/
+frontend/.next/
+frontend/node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
