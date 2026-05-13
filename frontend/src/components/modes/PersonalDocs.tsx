@@ -164,7 +164,7 @@ export function PersonalDocs() {
         <div className="space-y-1.5">
           <div className="flex gap-2">
             <input
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow"
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow min-h-[44px]"
               placeholder="Ask a question about your documents… (Enter to submit)"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -174,14 +174,15 @@ export function PersonalDocs() {
               onClick={handleQuery}
               disabled={loading || !query.trim() || isOverLimit}
               className={cn(
-                "flex items-center gap-1.5 px-5 py-2.5 text-white text-sm font-medium rounded-lg transition-all duration-200",
+                "flex items-center gap-1.5 px-4 sm:px-5 min-h-[44px] shrink-0 text-white text-sm font-medium rounded-lg transition-all duration-200",
                 query.trim() && !loading && !isOverLimit
                   ? "bg-brand-600 hover:bg-brand-700 shadow-sm hover:shadow-md"
                   : "bg-gray-300 cursor-not-allowed"
               )}
             >
               <Send className="h-3.5 w-3.5" />
-              {loading ? "Thinking…" : "Ask"}
+              <span className="hidden xs:inline sm:inline">{loading ? "Thinking…" : "Ask"}</span>
+              <span className="sm:hidden">{loading ? "…" : ""}</span>
             </button>
           </div>
           <div className="flex justify-end">

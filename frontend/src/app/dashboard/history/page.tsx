@@ -98,23 +98,25 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4 sticky top-0 z-40">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center gap-3 sticky top-0 z-40">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors min-h-[44px] py-2"
         >
-          <ArrowLeft className="h-4 w-4" /> Dashboard
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">Dashboard</span>
         </Link>
-        <h1 className="font-bold text-gray-900 flex-1">History</h1>
+        <h1 className="font-bold text-gray-900 flex-1 text-sm sm:text-base">History</h1>
         <button
           onClick={load}
-          className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1 px-3 py-2.5 min-h-[44px] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
         >
-          <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          <RefreshCw className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline ml-1">Refresh</span>
         </button>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
         {/* Retention notice */}
         <div className="flex items-start gap-3 p-4 mb-6 bg-blue-50 border border-blue-100 rounded-xl">
@@ -132,7 +134,7 @@ export default function HistoryPage() {
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize",
+                "flex-1 sm:flex-none px-4 py-2.5 min-h-[44px] text-sm font-medium border-b-2 transition-colors capitalize",
                 tab === t ? "border-brand-600 text-brand-700" : "border-transparent text-gray-500 hover:text-gray-800"
               )}
             >

@@ -138,7 +138,7 @@ export function CodebaseAssistant() {
           <div className="space-y-1.5">
             <div className="flex gap-2">
               <input
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow"
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow min-h-[44px]"
                 placeholder="e.g. 'How does authentication work?' or 'Explain the main function'"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -148,14 +148,14 @@ export function CodebaseAssistant() {
                 onClick={handleQuery}
                 disabled={loading || !query.trim() || isOverLimit}
                 className={cn(
-                  "flex items-center gap-1.5 px-5 py-2.5 text-sm font-mono rounded-lg transition-all duration-200",
+                  "flex items-center gap-1.5 px-4 sm:px-5 min-h-[44px] shrink-0 text-sm font-mono rounded-lg transition-all duration-200",
                   query.trim() && !loading && !isOverLimit
                     ? "bg-gray-900 text-green-400 hover:bg-gray-800 shadow-sm"
                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 )}
               >
                 <Send className="h-3.5 w-3.5" />
-                {loading ? "Analyzing…" : "$ ask"}
+                {loading ? "…" : "$ ask"}
               </button>
             </div>
             <div className="flex justify-end">

@@ -100,12 +100,12 @@ export function KnowledgeBase() {
         />
         <button
           onClick={refreshStats}
-          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+          className="p-2.5 min-h-[44px] min-w-[44px] rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors flex items-center justify-center"
           title="Refresh stats"
         >
           <RefreshCw className="h-4 w-4 text-gray-500" />
         </button>
-        <button onClick={handleReset} className="text-xs text-red-500 hover:text-red-700 hover:underline transition-colors">
+        <button onClick={handleReset} className="text-xs text-red-500 hover:text-red-700 hover:underline transition-colors min-h-[44px] px-2">
           Reset
         </button>
       </div>
@@ -156,7 +156,7 @@ export function KnowledgeBase() {
           <div className="space-y-1.5">
             <div className="flex gap-2">
               <input
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow"
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow min-h-[44px]"
                 placeholder="Ask anything about the knowledge base… (Enter to submit)"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -166,7 +166,7 @@ export function KnowledgeBase() {
                 onClick={handleQuery}
                 disabled={loading || !query.trim() || isOverLimit}
                 className={cn(
-                  "flex items-center gap-1.5 px-5 py-2.5 text-white text-sm font-medium rounded-lg transition-all duration-200",
+                  "flex items-center gap-1.5 px-4 sm:px-5 min-h-[44px] shrink-0 text-white text-sm font-medium rounded-lg transition-all duration-200",
                   query.trim() && !loading && !isOverLimit
                     ? "bg-brand-600 hover:bg-brand-700 shadow-sm hover:shadow-md"
                     : "bg-gray-300 cursor-not-allowed"

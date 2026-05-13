@@ -195,11 +195,11 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6 md:mb-8">
             <CheckCircle2 className="h-3.5 w-3.5" /> Free to use, no credit card required
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight tracking-tight mb-5 md:mb-6">
+          <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight tracking-tight mb-5 md:mb-6">
             Talk to your data.<br />
             <span className="text-brand-600">Get real answers.</span>
           </h1>
-          <p className="text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto mb-3 md:mb-4 leading-relaxed">
+          <p className="text-base sm:text-xl text-gray-500 max-w-2xl mx-auto mb-3 md:mb-4 leading-relaxed">
             Upload your documents, codebase, product catalog, or news feeds and ask questions in plain English. RAGaii finds what you need so you can stop searching and start knowing.
           </p>
           <p className="text-xs sm:text-sm text-gray-400 mb-8 md:mb-10">

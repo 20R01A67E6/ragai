@@ -106,7 +106,7 @@ export function ProductCatalog() {
           <div className="space-y-1.5">
             <div className="flex gap-2">
               <input
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow"
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow min-h-[44px]"
                 placeholder="e.g. 'best laptop under $1000 for video editing'"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -116,7 +116,7 @@ export function ProductCatalog() {
                 onClick={handleQuery}
                 disabled={loading || !query.trim() || isOverLimit}
                 className={cn(
-                  "flex items-center gap-1.5 px-5 py-2.5 text-white text-sm font-medium rounded-lg transition-all duration-200",
+                  "flex items-center gap-1.5 px-4 sm:px-5 min-h-[44px] shrink-0 text-white text-sm font-medium rounded-lg transition-all duration-200",
                   query.trim() && !loading && !isOverLimit
                     ? "bg-brand-600 hover:bg-brand-700 shadow-sm hover:shadow-md"
                     : "bg-gray-300 cursor-not-allowed"

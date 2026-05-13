@@ -111,7 +111,7 @@ export function NewsFeed() {
           <button
             onClick={addFeed}
             disabled={!feedUrl || !feedName}
-            className="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 min-h-[44px] shrink-0 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
           >
             Add
           </button>
@@ -140,7 +140,7 @@ export function NewsFeed() {
               <button
                 onClick={refresh}
                 disabled={refreshing}
-                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 px-2.5 py-2 min-h-[44px] rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <RefreshCw className={cn("h-3 w-3", refreshing && "animate-spin")} />
                 Refresh All
@@ -199,7 +199,7 @@ export function NewsFeed() {
 
             <div className="flex gap-2">
               <input
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow"
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition-shadow min-h-[44px]"
                 placeholder="Topic filter (optional) — e.g. 'AI', 'climate', 'finance'"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
@@ -209,7 +209,7 @@ export function NewsFeed() {
                 onClick={summarize}
                 disabled={loading}
                 className={cn(
-                  "flex items-center gap-1.5 px-5 py-2.5 text-white text-sm font-medium rounded-lg transition-all duration-200",
+                  "flex items-center gap-1.5 px-4 sm:px-5 min-h-[44px] shrink-0 text-white text-sm font-medium rounded-lg transition-all duration-200",
                   !loading
                     ? "bg-brand-600 hover:bg-brand-700 shadow-sm hover:shadow-md"
                     : "bg-brand-400 cursor-not-allowed"

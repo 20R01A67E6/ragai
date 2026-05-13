@@ -31,10 +31,10 @@ export default function FeedbackButton() {
   const canSubmit = rating > 0 || feedback.trim().length > 0;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end gap-3">
       {/* Modal */}
       <div
-        className={`w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden
+        className={`w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden
           transition-all duration-200 ease-out origin-bottom-right
           ${isOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-4 pointer-events-none"}`}
       >
@@ -115,7 +115,7 @@ export default function FeedbackButton() {
       {/* Toggle button */}
       <button
         onClick={isOpen ? handleClose : handleOpen}
-        className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
           isOpen
             ? "bg-gray-700 hover:bg-gray-800"
             : "bg-purple-700 hover:bg-purple-800 hover:scale-110"

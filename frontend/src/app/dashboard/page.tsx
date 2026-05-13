@@ -280,11 +280,11 @@ export default function DashboardPage() {
             <div className="flex items-center p-1 bg-gray-100 rounded-xl gap-0.5">
               {PROVIDERS.map(({ id, label, badge, locked, lockReason }) =>
                 locked ? (
-                  <div key={id} className="relative group/lock">
+                  <div key={id} className="hidden sm:block relative group/lock">
                     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs select-none cursor-not-allowed opacity-40">
                       <Lock className="h-3 w-3" />
-                      <span className="hidden sm:block">{label}</span>
-                      <span className="hidden sm:block">{badge}</span>
+                      <span>{label}</span>
+                      <span>{badge}</span>
                     </div>
                     <div className="pointer-events-none absolute right-0 top-full mt-1.5 z-50 w-56 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl opacity-0 group-hover/lock:opacity-100 transition-opacity whitespace-normal leading-relaxed">
                       {lockReason}
@@ -302,7 +302,8 @@ export default function DashboardPage() {
                         : "text-gray-500 hover:text-gray-800"
                     )}
                   >
-                    <span>{label}</span>
+                    <span className="hidden sm:inline">{label}</span>
+                    <span className="sm:hidden text-base leading-none" aria-hidden="true">{badge.split(" ")[0]}</span>
                     <span className={cn("text-xs hidden sm:block", provider === id ? "text-brand-500" : "text-gray-400")}>
                       {badge}
                     </span>
@@ -444,7 +445,7 @@ export default function DashboardPage() {
         </aside>
 
         {/* ── Main content ─────────────────────────────────────────────────── */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
