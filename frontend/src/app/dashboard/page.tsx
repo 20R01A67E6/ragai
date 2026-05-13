@@ -12,6 +12,7 @@ import {
   Brain, History, LogOut, User, HelpCircle, Info, Lock,
   Menu, X, ChevronLeft, ChevronRight, Bell, ChevronDown,
 } from "lucide-react";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth";
 import { llmSettings } from "@/lib/api";
@@ -259,7 +260,7 @@ export default function DashboardPage() {
 
           <div className="flex items-center gap-2.5">
             <Brain className="h-6 w-6 text-brand-600" />
-            <span className="font-bold text-gray-900">RAGaii</span>
+            <BrandLogo />
             <span className="text-gray-300 text-lg font-thin hidden sm:block">|</span>
             <span className="text-xs text-gray-500 hidden sm:block">Dashboard</span>
           </div>
@@ -396,7 +397,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                   <Brain className="h-5 w-5 text-brand-600" />
-                  <span className="font-bold text-gray-900">RAGaii</span>
+                  <BrandLogo />
                 </div>
                 <button
                   onClick={() => setMobileSidebarOpen(false)}

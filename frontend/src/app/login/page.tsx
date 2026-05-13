@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Brain, Eye, EyeOff } from "lucide-react";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
 
@@ -33,7 +34,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-2">
             <Brain className="h-8 w-8 text-brand-600" />
-            <span className="text-2xl font-bold text-gray-900">RAGaii</span>
+            <BrandLogo className="text-2xl" />
           </Link>
           <p className="text-gray-500 text-sm mt-2">Sign in to your account</p>
         </div>

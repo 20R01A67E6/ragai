@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth";
 import { Brain } from "lucide-react";
+import FeedbackButton from "@/components/ui/FeedbackButton";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -27,5 +28,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!session) return null;
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <FeedbackButton />
+    </>
+  );
 }

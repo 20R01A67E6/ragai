@@ -7,6 +7,7 @@ import {
   Menu, X, ChevronDown, ChevronUp, ChevronRight,
   GraduationCap, Terminal, Building2,
 } from "lucide-react";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -138,7 +139,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Brain className="h-7 w-7 text-brand-600" />
-            <span className="text-xl font-bold text-gray-900 tracking-tight">RAGaii</span>
+            <BrandLogo className="text-xl" />
           </div>
 
           {/* Desktop links */}
