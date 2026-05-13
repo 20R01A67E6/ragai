@@ -1,12 +1,12 @@
-"""Entry point: python run.py"""
+import os
 import uvicorn
-from app.core.config import settings
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
     uvicorn.run(
         "app.main:app",
-        host=settings.api_host,
-        port=settings.api_port,
-        reload=True,
-        log_level="info",
+        host="0.0.0.0",
+        port=port,
+        reload=False,
+        workers=1,
     )
