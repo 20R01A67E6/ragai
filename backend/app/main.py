@@ -6,7 +6,6 @@ from loguru import logger
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.database import init_db
-from app.engine.embeddings import get_embedding_model
 from app.engine.vector_store import get_pg_pool, close_pg_pool
 from app.modes.personal_docs.router import router as personal_docs_router
 from app.modes.knowledge_base.router import router as kb_router
@@ -28,9 +27,6 @@ async def lifespan(app: FastAPI):
 
     logger.info("Warming up pgvector pool...")
     await get_pg_pool()
-
-    logger.info("Pre-loading embedding model...")
-    get_embedding_model()
 
     logger.info(f"LLM provider: {settings.llm_provider}")
     start_scheduler()

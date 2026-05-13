@@ -1,3 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 # Web framework
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
@@ -10,10 +12,8 @@ pgvector==0.3.6
 # Auth
 supabase==2.30.0
 
-# Vector DB (pgvector via asyncpg — replaces ChromaDB)
-# chromadb removed
-
-# Embeddings (local, no API key needed)
+# Embeddings (local, CPU-only torch to fit 512 MB Render free tier)
+torch==2.11.0+cpu
 sentence-transformers==3.3.1
 
 # Document parsing

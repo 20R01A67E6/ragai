@@ -1,16 +1,23 @@
-from functools import lru_cache
+import os
 from typing import List
-from sentence_transformers import SentenceTransformer
 from loguru import logger
 from app.core.config import settings
 
+# Suppress HuggingFace tokenizer parallelism warnings and reduce memory overhead
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-@lru_cache(maxsize=1)
-def get_embedding_model() -> SentenceTransformer:
-    logger.info(f"Loading embedding model: {settings.embedding_model}")
-    model = SentenceTransformer(settings.embedding_model, device=settings.embedding_device)
-    logger.info("Embedding model loaded.")
-    return model
+# Loaded on first call, cached for the lifetime of the process
+_model = None
+
+
+def get_embedding_model():
+    global _model
+    if _model is None:
+        from sentence_transformers import SentenceTransformer
+        logger.info(f"Loading embedding model: {settings.embedding_model}")
+        _model = SentenceTransformer(settings.embedding_model, device=settings.embedding_device)
+        logger.info("Embedding model loaded.")
+    return _model
 
 
 def embed_texts(texts: List[str]) -> List[List[float]]:
