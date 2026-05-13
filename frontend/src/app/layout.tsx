@@ -4,7 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/contexts/auth";
 
 export const metadata: Metadata = {
-  title: "RAGAI — Retrieval-Augmented Generation Platform",
+  title: "RAGaii — Retrieval-Augmented Generation Platform",
   description: "Multi-mode AI platform: Q&A over docs, knowledge bases, product catalogs, code, and news.",
 };
 

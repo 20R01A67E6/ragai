@@ -58,13 +58,13 @@ const STEPS = [
     icon: Upload,
     step: "01",
     title: "Upload your content",
-    desc: "Drop in your documents, code files, or product catalog, or connect an RSS feed. RAGAI handles PDFs, Word documents, CSV, JSON, and source code files with no setup required.",
+    desc: "Drop in your documents, code files, or product catalog, or connect an RSS feed. RAGaii handles PDFs, Word documents, CSV, JSON, and source code files with no setup required.",
   },
   {
     icon: Search,
     step: "02",
     title: "Ask in plain English",
-    desc: "Type your question the same way you would ask a colleague. RAGAI identifies the most relevant parts of your content and uses them to form the answer.",
+    desc: "Type your question the same way you would ask a colleague. RAGaii identifies the most relevant parts of your content and uses them to form the answer.",
   },
   {
     icon: Sparkles,
@@ -80,7 +80,7 @@ const USE_CASES = [
     color: "bg-brand-50 text-brand-600",
     title: "For Students",
     subtitle: "Make your study materials searchable",
-    desc: "Upload your textbooks, lecture notes, and research papers, then ask questions about them in plain English. RAGAI reads your material and gives you answers that pull directly from the text, which makes studying more efficient and tracking down a specific idea much faster.",
+    desc: "Upload your textbooks, lecture notes, and research papers, then ask questions about them in plain English. RAGaii reads your material and gives you answers that pull directly from the text, which makes studying more efficient and tracking down a specific idea much faster.",
     detail: "Particularly useful when preparing for exams, working through dense reading, or finding a specific passage across several documents.",
   },
   {
@@ -108,7 +108,7 @@ const FAQS = [
   },
   {
     q: "What file types are supported?",
-    a: "RAGAI works with PDFs, Word documents, plain text, Markdown, CSV, and JSON files. For code, it supports Python, JavaScript, TypeScript, Java, Go, Rust, C, C++, Ruby, Shell scripts, and several other languages.",
+    a: "RAGaii works with PDFs, Word documents, plain text, Markdown, CSV, and JSON files. For code, it supports Python, JavaScript, TypeScript, Java, Go, Rust, C, C++, Ruby, Shell scripts, and several other languages.",
   },
   {
     q: "How is my data stored?",
@@ -138,7 +138,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Brain className="h-7 w-7 text-brand-600" />
-            <span className="text-xl font-bold text-gray-900 tracking-tight">RAGAI</span>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">RAGaii</span>
           </div>
 
           {/* Desktop links */}
@@ -199,7 +199,7 @@ export default function LandingPage() {
             <span className="text-brand-600">Get real answers.</span>
           </h1>
           <p className="text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto mb-3 md:mb-4 leading-relaxed">
-            Upload your documents, codebase, product catalog, or news feeds and ask questions in plain English. RAGAI finds what you need so you can stop searching and start knowing.
+            Upload your documents, codebase, product catalog, or news feeds and ask questions in plain English. RAGaii finds what you need so you can stop searching and start knowing.
           </p>
           <p className="text-xs sm:text-sm text-gray-400 mb-8 md:mb-10">
             Supports PDFs, Word documents, CSV, JSON, source code files, and RSS feeds.
@@ -280,7 +280,7 @@ export default function LandingPage() {
           <div className="text-center mb-10 md:mb-14">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Built for every use case</h2>
             <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">
-              Whether you are studying, building, or running a team, RAGAI adapts to how you work.
+              Whether you are studying, building, or running a team, RAGaii adapts to how you work.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
@@ -400,10 +400,10 @@ export default function LandingPage() {
             <div className="sm:col-span-2">
               <div className="flex items-center gap-2 mb-3">
                 <Brain className="h-5 w-5 text-brand-400" />
-                <span className="text-white font-semibold">RAGAI</span>
+                <span className="text-white font-semibold">RAGaii</span>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
-                Ask questions about your documents, codebase, product catalog, or news feeds in plain English. RAGAI finds the answers.
+                Ask questions about your documents, codebase, product catalog, or news feeds in plain English. RAGaii finds the answers.
               </p>
             </div>
 
@@ -444,7 +444,7 @@ export default function LandingPage() {
 
           <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-gray-500 text-sm">
-              © 2026 RAGAI. Made with ❤️ by{" "}
+              © 2026 RAGaii. Made with ❤️ by{" "}
               <a
                 href="https://abhinav-reddy-kandula.vercel.app/"
                 target="_blank"

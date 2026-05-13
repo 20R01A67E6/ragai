@@ -33,7 +33,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-2">
             <Brain className="h-8 w-8 text-brand-600" />
-            <span className="text-2xl font-bold text-gray-900">RAGAI</span>
+            <span className="text-2xl font-bold text-gray-900">RAGaii</span>
           </Link>
           <p className="text-gray-500 text-sm mt-2">Sign in to your account</p>
         </div>
