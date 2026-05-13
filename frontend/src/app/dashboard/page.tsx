@@ -10,7 +10,7 @@ import { NewsFeed } from "@/components/modes/NewsFeed";
 import {
   FileText, Database, ShoppingBag, Code2, Newspaper,
   Brain, History, LogOut, User, HelpCircle, Info, Lock,
-  Menu, X, ChevronLeft, ChevronRight, Bell, ChevronDown,
+  Menu, X, ChevronLeft, ChevronRight, ChevronDown,
 } from "lucide-react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { cn } from "@/lib/utils";
@@ -324,13 +324,6 @@ export default function DashboardPage() {
             <History className="h-3.5 w-3.5" /> History
           </Link>
 
-          {/* Notification bell (placeholder) */}
-          <button
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-            title="Notifications (coming soon)"
-          >
-            <Bell className="h-4 w-4" />
-          </button>
 
           {/* User avatar + dropdown */}
           <div className="relative" ref={userMenuRef}>

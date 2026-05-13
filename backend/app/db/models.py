@@ -1,6 +1,5 @@
 from datetime import datetime
 from sqlalchemy import String, Integer, BigInteger, DateTime, Text, Boolean, ForeignKey, Float
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -12,7 +11,7 @@ class Document(Base):
     __tablename__ = "documents"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    user_id: Mapped[str] = mapped_column(PGUUID(as_uuid=False), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     filename: Mapped[str] = mapped_column(String(512))
     original_name: Mapped[str] = mapped_column(String(512))
     file_url: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -32,7 +31,7 @@ class QueryLog(Base):
     __tablename__ = "query_logs"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    user_id: Mapped[str] = mapped_column(PGUUID(as_uuid=False), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     mode: Mapped[str] = mapped_column(String(64))
     namespace: Mapped[str] = mapped_column(String(128), default="default")
     query: Mapped[str] = mapped_column(Text)
@@ -51,7 +50,7 @@ class RssFeed(Base):
     __tablename__ = "rss_feeds"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    user_id: Mapped[str] = mapped_column(PGUUID(as_uuid=False), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     url: Mapped[str] = mapped_column(String(1024))
     name: Mapped[str] = mapped_column(String(256))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
