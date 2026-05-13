@@ -1,12 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="6" fill="#7c3aed"/>
-  <text
-    x="16" y="16"
-    dominant-baseline="central"
-    text-anchor="middle"
-    font-family="system-ui,-apple-system,sans-serif"
-    font-weight="800"
+  <text x="16" y="23"
+    font-family="system-ui, sans-serif"
     font-size="20"
+    font-weight="800"
     fill="white"
-  >R</text>
+    text-anchor="middle">R</text>
 </svg>
