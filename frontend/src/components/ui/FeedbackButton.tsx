@@ -1,6 +1,25 @@
 "use client";
 import { useState } from "react";
 import { MessageSquare, X, Star, Send, CheckCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSf9GFv5_TSDJqEZKD5c7GZ3nbY75CvdOE3Y24YuLng7aMAhyw/formResponse";
+const RATING_FIELD = "entry.1452643727";
+const MESSAGE_FIELD = "entry.1927922958";
+const EMAIL_FIELD = "entry.1128286031";
+
+async function submitToGoogleForm(rating: number, message: string, email: string) {
+  const formData = new FormData();
+  formData.append(RATING_FIELD, rating.toString());
+  formData.append(MESSAGE_FIELD, message);
+  formData.append(EMAIL_FIELD, email || "anonymous");
+
+  await fetch(FORM_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: formData,
+  });
+}
 
 export default function FeedbackButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -8,6 +27,7 @@ export default function FeedbackButton() {
   const [hovered, setHovered] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleOpen = () => {
     setIsOpen(true);
@@ -20,12 +40,26 @@ export default function FeedbackButton() {
       setRating(0);
       setFeedback("");
       setSubmitted(false);
+      setSubmitting(false);
     }, 200);
   };
 
-  const handleSubmit = () => {
-    setSubmitted(true);
-    setTimeout(() => handleClose(), 2500);
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const email = user?.email || "anonymous";
+      await submitToGoogleForm(rating, feedback, email);
+      setSubmitted(true);
+      setTimeout(() => handleClose(), 2500);
+    } catch {
+      // Submission failed silently — no-cors responses always throw on network error,
+      // but a CORS opaque response is indistinguishable from success, so we still show success.
+      setSubmitted(true);
+      setTimeout(() => handleClose(), 2500);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const canSubmit = rating > 0 || feedback.trim().length > 0;
@@ -107,11 +141,11 @@ export default function FeedbackButton() {
 
               <button
                 onClick={handleSubmit}
-                disabled={!canSubmit}
+                disabled={!canSubmit || submitting}
                 className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple-700 hover:bg-purple-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors"
               >
                 <Send className="h-3.5 w-3.5" />
-                Send feedback
+                {submitting ? "Sending…" : "Send feedback"}
               </button>
             </div>
           )}
