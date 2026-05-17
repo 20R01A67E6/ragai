@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     gemini_model: str = Field(default="gemini-1.5-flash", alias="GEMINI_MODEL")
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
     ollama_model: str = Field(default="llama3.2", alias="OLLAMA_MODEL")
+    openrouter_api_key: str = Field(default="", alias="OPENROUTER_API_KEY")
+    openrouter_model: str = Field(default="deepseek/deepseek-r1:free", alias="OPENROUTER_MODEL")
 
     # Embeddings
     embedding_model: str = Field(default="all-MiniLM-L6-v2", alias="EMBEDDING_MODEL")

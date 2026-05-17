@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"C:\\\\Users\\\\kandu\\\\rag-platform\\\\backend\" -name \"*.py\" -not -path \"*/.venv/*\" -not -path \"*\\\\\\\\.venv\\\\\\\\*\")"
+    ]
+  }
+}

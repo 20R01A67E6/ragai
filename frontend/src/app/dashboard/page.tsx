@@ -73,7 +73,7 @@ const MODES: {
 
 // ── LLM provider definitions ──────────────────────────────────────────────────
 
-type ProviderId = "groq" | "gemini" | "ollama";
+type ProviderId = "groq" | "gemini" | "openrouter" | "ollama";
 
 const PROVIDERS: {
   id: ProviderId;
@@ -82,8 +82,9 @@ const PROVIDERS: {
   locked?: true;
   lockReason?: string;
 }[] = [
-  { id: "groq",   label: "Groq",   badge: "⚡ Fast" },
-  { id: "gemini", label: "Gemini", badge: "🧠 Smart" },
+  { id: "groq",       label: "Groq",       badge: "⚡ Fast"    },
+  { id: "gemini",     label: "Gemini",     badge: "🧠 Smart"   },
+  { id: "openrouter", label: "OpenRouter", badge: "OR Free"    },
   {
     id: "ollama",
     label: "Ollama",
@@ -93,11 +94,21 @@ const PROVIDERS: {
   },
 ];
 
+const OR_MODELS = [
+  { id: "deepseek-r1",   label: "DeepSeek R1",   tag: "Reasoning"   },
+  { id: "llama-3.3-70b", label: "Llama 3.3 70B", tag: "Fast"        },
+  { id: "qwen-2.5-72b",  label: "Qwen 2.5 72B",  tag: "Documents"   },
+  { id: "gemma-2-27b",   label: "Gemma 2 27B",   tag: "Google"      },
+  { id: "mistral-7b",    label: "Mistral 7B",     tag: "Lightweight" },
+] as const;
+
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [activeMode, setActiveMode] = useState<Mode>("personal-docs");
   const [provider, setProvider] = useState<ProviderId | "">("");
+  const [openrouterModel, setOpenrouterModel] = useState("deepseek-r1");
+  const [showOrDropdown, setShowOrDropdown] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -105,12 +116,16 @@ export default function DashboardPage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const orDropdownRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     llmSettings.getProvider()
       .then((r) => setProvider(r.data.provider as ProviderId))
+      .catch(() => {});
+    llmSettings.getOpenRouterModel()
+      .then((r) => setOpenrouterModel(r.data.model_key))
       .catch(() => {});
   }, []);
 
@@ -125,10 +140,24 @@ export default function DashboardPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Close OR dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (orDropdownRef.current && !orDropdownRef.current.contains(e.target as Node)) {
+        setShowOrDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   // Close mobile sidebar on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileSidebarOpen(false);
+      if (e.key === "Escape") {
+        setMobileSidebarOpen(false);
+        setShowOrDropdown(false);
+      }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
@@ -149,6 +178,7 @@ export default function DashboardPage() {
 
   const switchProvider = async (p: ProviderId) => {
     if (p === provider || switching) return;
+    setShowOrDropdown(false);
     setSwitching(true);
     try {
       await llmSettings.setProvider(p);
@@ -159,6 +189,18 @@ export default function DashboardPage() {
       toast.error("Failed to switch provider");
     } finally {
       setSwitching(false);
+    }
+  };
+
+  const switchOrModel = async (modelId: string) => {
+    setShowOrDropdown(false);
+    try {
+      await llmSettings.setOpenRouterModel(modelId);
+      setOpenrouterModel(modelId);
+      const label = OR_MODELS.find((m) => m.id === modelId)?.label ?? modelId;
+      toast.success(`OpenRouter model: ${label}`);
+    } catch {
+      toast.error("Failed to switch model");
     }
   };
 
@@ -276,44 +318,115 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
 
           {/* LLM provider toggle */}
-          {provider ? (
-            <div className="flex items-center p-1 bg-gray-100 rounded-xl gap-0.5">
-              {PROVIDERS.map(({ id, label, badge, locked, lockReason }) =>
-                locked ? (
-                  <div key={id} className="hidden sm:block relative group/lock">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs select-none cursor-not-allowed opacity-40">
-                      <Lock className="h-3 w-3" />
-                      <span>{label}</span>
-                      <span>{badge}</span>
+          <div className="relative" ref={orDropdownRef}>
+            {provider ? (
+              <div className="flex items-center p-1 bg-gray-100 rounded-xl gap-0.5">
+                {PROVIDERS.map(({ id, label, badge, locked, lockReason }) =>
+                  locked ? (
+                    <div key={id} className="hidden sm:block relative group/lock">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs select-none cursor-not-allowed opacity-40">
+                        <Lock className="h-3 w-3" />
+                        <span>{label}</span>
+                        <span>{badge}</span>
+                      </div>
+                      <div className="pointer-events-none absolute right-0 top-full mt-1.5 z-50 w-56 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl opacity-0 group-hover/lock:opacity-100 transition-opacity whitespace-normal leading-relaxed">
+                        {lockReason}
+                      </div>
                     </div>
-                    <div className="pointer-events-none absolute right-0 top-full mt-1.5 z-50 w-56 rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-xl opacity-0 group-hover/lock:opacity-100 transition-opacity whitespace-normal leading-relaxed">
-                      {lockReason}
-                    </div>
-                  </div>
-                ) : (
+                  ) : id === "openrouter" ? (
+                    <button
+                      key={id}
+                      onClick={() =>
+                        provider === "openrouter"
+                          ? setShowOrDropdown((v) => !v)
+                          : switchProvider("openrouter")
+                      }
+                      disabled={switching}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all disabled:cursor-not-allowed select-none",
+                        provider === "openrouter"
+                          ? "bg-white text-brand-700 shadow-sm font-semibold"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      <span className="hidden sm:inline">{label}</span>
+                      <span className="sm:hidden font-mono font-bold leading-none" aria-hidden="true">OR</span>
+                      <span className={cn(
+                        "text-xs hidden sm:block",
+                        provider === "openrouter" ? "text-brand-500" : "text-gray-400"
+                      )}>
+                        {provider === "openrouter"
+                          ? (OR_MODELS.find((m) => m.id === openrouterModel)?.tag ?? "Free")
+                          : badge}
+                      </span>
+                      {provider === "openrouter" && (
+                        <ChevronDown className={cn(
+                          "h-3 w-3 transition-transform duration-150",
+                          showOrDropdown && "rotate-180"
+                        )} />
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      key={id}
+                      onClick={() => switchProvider(id)}
+                      disabled={switching}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all disabled:cursor-not-allowed select-none",
+                        provider === id
+                          ? "bg-white text-brand-700 shadow-sm font-semibold"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      <span className="hidden sm:inline">{label}</span>
+                      <span className="sm:hidden text-base leading-none" aria-hidden="true">{badge.split(" ")[0]}</span>
+                      <span className={cn("text-xs hidden sm:block", provider === id ? "text-brand-500" : "text-gray-400")}>
+                        {badge}
+                      </span>
+                    </button>
+                  )
+                )}
+              </div>
+            ) : (
+              <div className="h-9 w-36 sm:w-56 rounded-xl bg-gray-100 animate-pulse" />
+            )}
+
+            {/* OpenRouter model selector dropdown */}
+            {provider === "openrouter" && showOrDropdown && (
+              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden min-w-[200px]">
+                <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                  Free models
+                </p>
+                {OR_MODELS.map((m) => (
                   <button
-                    key={id}
-                    onClick={() => switchProvider(id)}
-                    disabled={switching}
+                    key={m.id}
+                    onClick={() => switchOrModel(m.id)}
                     className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all disabled:cursor-not-allowed select-none",
-                      provider === id
-                        ? "bg-white text-brand-700 shadow-sm font-semibold"
-                        : "text-gray-500 hover:text-gray-800"
+                      "w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors",
+                      openrouterModel === m.id
+                        ? "bg-brand-50"
+                        : "hover:bg-gray-50"
                     )}
                   >
-                    <span className="hidden sm:inline">{label}</span>
-                    <span className="sm:hidden text-base leading-none" aria-hidden="true">{badge.split(" ")[0]}</span>
-                    <span className={cn("text-xs hidden sm:block", provider === id ? "text-brand-500" : "text-gray-400")}>
-                      {badge}
+                    <span className={cn(
+                      "font-medium",
+                      openrouterModel === m.id ? "text-brand-700" : "text-gray-800"
+                    )}>
+                      {m.label}
+                    </span>
+                    <span className={cn(
+                      "ml-3 text-[10px] px-1.5 py-0.5 rounded-full",
+                      openrouterModel === m.id
+                        ? "bg-brand-100 text-brand-600"
+                        : "bg-gray-100 text-gray-500"
+                    )}>
+                      {m.tag}
                     </span>
                   </button>
-                )
-              )}
-            </div>
-          ) : (
-            <div className="h-9 w-36 sm:w-48 rounded-xl bg-gray-100 animate-pulse" />
-          )}
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 

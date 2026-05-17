@@ -24,8 +24,8 @@ export const personalDocs = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  query: (query: string, namespace = "default", top_k = 5, llm_provider?: string) =>
-    api.post("/personal-docs/query", { query, namespace, top_k, llm_provider }),
+  query: (query: string, namespace = "default", top_k = 5, llm_provider?: string, openrouter_model?: string) =>
+    api.post("/personal-docs/query", { query, namespace, top_k, llm_provider, openrouter_model }),
   list: (namespace = "default") =>
     api.get("/personal-docs/documents", { params: { namespace } }),
   delete: (id: number) => api.delete(`/personal-docs/documents/${id}`),
@@ -41,8 +41,8 @@ export const knowledgeBase = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  query: (query: string, namespace = "default", top_k = 5, llm_provider?: string) =>
-    api.post("/knowledge-base/query", { query, namespace, top_k, llm_provider }),
+  query: (query: string, namespace = "default", top_k = 5, llm_provider?: string, openrouter_model?: string) =>
+    api.post("/knowledge-base/query", { query, namespace, top_k, llm_provider, openrouter_model }),
   stats: (namespace = "default") =>
     api.get("/knowledge-base/stats", { params: { namespace } }),
   reset: (namespace = "default") =>
@@ -59,8 +59,8 @@ export const catalog = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  recommend: (query: string, namespace = "default", top_k = 5, llm_provider?: string) =>
-    api.post("/product-catalog/recommend", { query, namespace, top_k, llm_provider }),
+  recommend: (query: string, namespace = "default", top_k = 5, llm_provider?: string, openrouter_model?: string) =>
+    api.post("/product-catalog/recommend", { query, namespace, top_k, llm_provider, openrouter_model }),
 };
 
 // ── Codebase ─────────────────────────────────────────────────────────────────
@@ -73,8 +73,8 @@ export const codebase = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  query: (query: string, namespace = "default", top_k = 5, llm_provider?: string) =>
-    api.post("/codebase/query", { query, namespace, top_k, llm_provider }),
+  query: (query: string, namespace = "default", top_k = 5, llm_provider?: string, openrouter_model?: string) =>
+    api.post("/codebase/query", { query, namespace, top_k, llm_provider, openrouter_model }),
   list: (namespace = "default") =>
     api.get("/codebase/documents", { params: { namespace } }),
 };
@@ -86,8 +86,8 @@ export const newsFeed = {
   deleteFeed: (id: number) => api.delete(`/news-feed/feeds/${id}`),
   refresh: (namespace = "default") =>
     api.post("/news-feed/refresh", null, { params: { namespace } }),
-  summarize: (topic?: string, namespace = "default", top_k = 10, llm_provider?: string) =>
-    api.post("/news-feed/summarize", { topic, namespace, top_k, llm_provider }),
+  summarize: (topic?: string, namespace = "default", top_k = 10, llm_provider?: string, openrouter_model?: string) =>
+    api.post("/news-feed/summarize", { topic, namespace, top_k, llm_provider, openrouter_model }),
 };
 
 // ── History ───────────────────────────────────────────────────────────────────
@@ -104,6 +104,12 @@ export const llmSettings = {
   getProvider: () => api.get<{ provider: string }>("/settings/llm-provider"),
   setProvider: (provider: string) =>
     api.post<{ provider: string }>("/settings/llm-provider", { provider }),
+  getOpenRouterModels: () =>
+    api.get<{ id: string; model_id: string }[]>("/settings/openrouter-models"),
+  getOpenRouterModel: () =>
+    api.get<{ model: string; model_key: string }>("/settings/openrouter-model"),
+  setOpenRouterModel: (model: string) =>
+    api.post<{ model: string; model_key: string }>("/settings/openrouter-model", { model }),
 };
 
 // ── Health ────────────────────────────────────────────────────────────────────
