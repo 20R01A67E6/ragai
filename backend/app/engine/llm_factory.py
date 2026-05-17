@@ -164,6 +164,8 @@ async def _call_openrouter(prompt: str, system: str, model: str | None = None) -
             },
             json={"model": model_id, "messages": messages},
         )
+        if resp.status_code >= 400:
+            print(f"OpenRouter error: {resp.status_code} {resp.text}")
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
 
