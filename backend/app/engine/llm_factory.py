@@ -10,6 +10,13 @@ OPENROUTER_MODELS: dict[str, str] = {
     "mistral-7b":    "mistralai/mistral-7b-instruct:free",
 }
 
+# Ordered retry sequence when an OR model returns 429
+OR_RETRY_SEQUENCE: list[str] = [
+    OPENROUTER_MODELS["deepseek-r1"],
+    OPENROUTER_MODELS["llama-3.3-70b"],
+    OPENROUTER_MODELS["qwen-2.5-72b"],
+]
+
 ALL_RATE_LIMITED_MSG = (
     "All AI providers are currently at capacity. "
     "Groq resets at midnight UTC, Gemini resets at midnight Pacific time. "
@@ -88,6 +95,11 @@ def _is_rate_limit(exc: Exception) -> bool:
     ))
 
 
+def _or_model_key(full_id: str) -> str:
+    """Return the short key for a full OR model ID, falling back to the full ID."""
+    return next((k for k, v in OPENROUTER_MODELS.items() if v == full_id), full_id)
+
+
 async def _call_groq(prompt: str, system: str, stream: bool) -> str:
     from groq import AsyncGroq
 
@@ -156,6 +168,47 @@ async def _call_openrouter(prompt: str, system: str, model: str | None = None) -
         return resp.json()["choices"][0]["message"]["content"]
 
 
+async def _call_openrouter_with_fallback(
+    prompt: str,
+    system: str,
+    start_model: str | None = None,
+) -> tuple[str, str, str | None]:
+    """
+    Try OR models in sequence when a 429 is returned.
+
+    Attempt order: start_model first (defaults to _current_openrouter_model),
+    then OR_RETRY_SEQUENCE (deepseek-r1 → llama-3.3-70b → qwen-2.5-72b),
+    skipping any model already tried.
+
+    Returns (content, model_full_id, fallback_notice | None).
+    Raises the last 429 exception when all candidates are exhausted.
+    """
+    first = start_model or _current_openrouter_model
+    # Build a de-duplicated ordered list: user's model first, then the retry sequence
+    ordered: list[str] = [first] + [m for m in OR_RETRY_SEQUENCE if m != first]
+
+    last_exc: Exception | None = None
+    switched = False
+
+    for model_id in ordered:
+        try:
+            content = await _call_openrouter(prompt, system, model=model_id)
+            notice = (
+                f"OpenRouter rate limit hit, switched to {_or_model_key(model_id)}"
+                if switched
+                else None
+            )
+            return content, model_id, notice
+        except Exception as exc:
+            if not _is_rate_limit(exc):
+                raise
+            last_exc = exc
+            switched = True
+            logger.warning(f"OpenRouter {_or_model_key(model_id)} rate-limited, trying next model")
+
+    raise last_exc  # type: ignore[misc]
+
+
 async def _dispatch(prompt: str, system: str, provider: str, openrouter_model: str | None = None) -> tuple[str, str]:
     """Call a provider and return (content, model_name)."""
     if provider == "groq":
@@ -183,12 +236,54 @@ async def generate(
         content, model = await _dispatch(prompt, system, "ollama")
         return LLMResponse(content=content, provider="ollama", model=model)
 
-    # OpenRouter: called directly when chosen explicitly, errors surface normally
+    # OpenRouter primary: retry across free models on 429, then fall back to Groq → Gemini
     if resolved == "openrouter":
-        content, model = await _dispatch(prompt, system, "openrouter")
-        return LLMResponse(content=content, provider="openrouter", model=model)
+        try:
+            content, model, notice = await _call_openrouter_with_fallback(
+                prompt, system, start_model=_current_openrouter_model
+            )
+            return LLMResponse(content=content, provider="openrouter", model=model, fallback_notice=notice)
+        except Exception as exc:
+            if not _is_rate_limit(exc):
+                raise
 
-    # groq / gemini: try primary → other cloud → OpenRouter as final fallback → error
+        # All OR models rate-limited — fall back to Groq
+        logger.warning("All OpenRouter models rate-limited, falling back to Groq")
+        try:
+            content, model = await _dispatch(prompt, system, "groq")
+            return LLMResponse(
+                content=content,
+                provider="groq",
+                model=model,
+                fallback_notice="All OpenRouter models are at capacity, switched to Groq",
+            )
+        except Exception as groq_exc:
+            if not _is_rate_limit(groq_exc):
+                raise
+
+        # Groq also rate-limited — try Gemini
+        logger.warning("Groq also rate-limited, trying Gemini")
+        try:
+            content, model = await _dispatch(prompt, system, "gemini")
+            return LLMResponse(
+                content=content,
+                provider="gemini",
+                model=model,
+                fallback_notice="All OpenRouter models and Groq are at capacity, switched to Gemini",
+            )
+        except Exception as gemini_exc:
+            if not _is_rate_limit(gemini_exc):
+                raise
+
+        logger.error("All providers exhausted")
+        return LLMResponse(
+            content=ALL_RATE_LIMITED_MSG,
+            provider="none",
+            model="none",
+            fallback_notice=ALL_RATE_LIMITED_MSG,
+        )
+
+    # groq / gemini primary: try primary → other cloud → OR retry chain → error
     primary = resolved
     fallback = "gemini" if primary == "groq" else "groq"
     primary_label = primary.capitalize()
@@ -210,24 +305,27 @@ async def generate(
         if not _is_rate_limit(exc2):
             raise
 
-    # Both cloud providers rate-limited — try OpenRouter with deepseek-r1 as final fallback
+    # Both cloud providers rate-limited — walk OR retry sequence as final fallback
     if settings.openrouter_api_key:
-        or_model = OPENROUTER_MODELS["deepseek-r1"]
-        or_notice = (
-            f"Both {primary_label} and {fallback_label} are at capacity, "
-            "using OpenRouter as fallback"
-        )
-        logger.warning(or_notice)
+        base_notice = f"Both {primary_label} and {fallback_label} are at capacity"
+        logger.warning(f"{base_notice}, trying OpenRouter fallback chain")
         try:
-            content = await _call_openrouter(prompt, system, model=or_model)
+            content, or_model, or_switch_notice = await _call_openrouter_with_fallback(
+                prompt, system, start_model=OPENROUTER_MODELS["deepseek-r1"]
+            )
+            final_notice = (
+                f"{base_notice}, using OpenRouter ({or_switch_notice})"
+                if or_switch_notice
+                else f"{base_notice}, using OpenRouter as fallback"
+            )
             return LLMResponse(
                 content=content,
                 provider="openrouter",
                 model=or_model,
-                fallback_notice=or_notice,
+                fallback_notice=final_notice,
             )
         except Exception as exc3:
-            logger.error(f"OpenRouter fallback also failed: {exc3}")
+            logger.error(f"OpenRouter fallback chain also exhausted: {exc3}")
 
     logger.error("All LLM providers are rate-limited or unavailable")
     return LLMResponse(
