@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://ragaii.vercel.app",
   },
+  verification: {
+    google: "daaed88fa161faf9",
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
