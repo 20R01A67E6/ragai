@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     canonical: "https://ragaii.vercel.app",
   },
   verification: {
-    google: "daaed88fa161faf9",
+    google: "MaAZApjntTL46xZz0bRMCSMVXjCcV3jMOZ5lq-A45Sg",
   },
   icons: {
     icon: [
