@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, cast, String
 from loguru import logger
 
 from app.auth.dependencies import get_current_user
@@ -118,7 +118,7 @@ async def list_documents(
 ):
     result = await db.execute(
         select(Document).where(
-            Document.user_id == user_id,
+            cast(Document.user_id, String) == str(user_id),
             Document.mode == MODE,
             Document.namespace == namespace,
         )

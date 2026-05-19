@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, cast, String
 import feedparser
 import httpx
 from loguru import logger
@@ -87,7 +87,7 @@ async def add_feed(
     db: AsyncSession = Depends(get_db),
 ):
     existing = await db.execute(
-        select(RssFeed).where(and_(RssFeed.user_id == user_id, RssFeed.url == feed.url))
+        select(RssFeed).where(and_(cast(RssFeed.user_id, String) == str(user_id), RssFeed.url == feed.url))
     )
     if existing.scalar_one_or_none():
         raise HTTPException(409, "Feed already exists")
@@ -107,7 +107,7 @@ async def list_feeds(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(RssFeed).where(RssFeed.user_id == user_id).order_by(RssFeed.created_at.desc())
+        select(RssFeed).where(cast(RssFeed.user_id, String) == str(user_id)).order_by(RssFeed.created_at.desc())
     )
     return result.scalars().all()
 
@@ -134,7 +134,7 @@ async def refresh_feeds(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(RssFeed).where(RssFeed.user_id == user_id, RssFeed.is_active == True)
+        select(RssFeed).where(cast(RssFeed.user_id, String) == str(user_id), RssFeed.is_active == True)
     )
     feeds = result.scalars().all()
     for feed in feeds:

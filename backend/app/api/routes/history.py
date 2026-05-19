@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, cast, String
 
 from app.auth.dependencies import get_current_user
 from app.db.database import get_db
@@ -20,7 +20,7 @@ async def get_query_history(
 ):
     result = await db.execute(
         select(QueryLog)
-        .where(QueryLog.user_id == user_id)
+        .where(cast(QueryLog.user_id, String) == str(user_id))
         .order_by(QueryLog.created_at.desc())
         .limit(limit)
     )
@@ -48,7 +48,7 @@ async def get_all_documents(
 ):
     result = await db.execute(
         select(Document)
-        .where(Document.user_id == user_id)
+        .where(cast(Document.user_id, String) == str(user_id))
         .order_by(Document.created_at.desc())
     )
     return result.scalars().all()
@@ -78,6 +78,6 @@ async def delete_all_history(
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await db.execute(delete(QueryLog).where(QueryLog.user_id == user_id))
+    await db.execute(delete(QueryLog).where(cast(QueryLog.user_id, String) == str(user_id)))
     await db.commit()
     return {"cleared": True}
