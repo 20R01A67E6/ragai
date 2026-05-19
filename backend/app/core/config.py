@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     ollama_model: str = Field(default="llama3.2", alias="OLLAMA_MODEL")
     openrouter_api_key: str = Field(default="", alias="OPENROUTER_API_KEY")
     openrouter_model: str = Field(default="deepseek/deepseek-r1:free", alias="OPENROUTER_MODEL")
+    cloudflare_account_id: str = Field(default="", alias="CLOUDFLARE_ACCOUNT_ID")
+    cloudflare_api_token: str = Field(default="", alias="CLOUDFLARE_API_TOKEN")
+    cloudflare_model: str = Field(default="llama-3.1-8b", alias="CLOUDFLARE_MODEL")
 
     # Embeddings
     embedding_model: str = Field(default="all-MiniLM-L6-v2", alias="EMBEDDING_MODEL")

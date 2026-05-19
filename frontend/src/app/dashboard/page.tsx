@@ -73,7 +73,7 @@ const MODES: {
 
 // ── LLM provider definitions ──────────────────────────────────────────────────
 
-type ProviderId = "groq" | "gemini" | "ollama";
+type ProviderId = "groq" | "gemini" | "cloudflare" | "ollama";
 
 const PROVIDERS: {
   id: ProviderId;
@@ -82,8 +82,9 @@ const PROVIDERS: {
   locked?: true;
   lockReason?: string;
 }[] = [
-  { id: "groq",   label: "Groq",   badge: "⚡ Fast"  },
-  { id: "gemini", label: "Gemini", badge: "🧠 Smart" },
+  { id: "groq",        label: "Groq",        badge: "⚡ Fast"    },
+  { id: "gemini",      label: "Gemini",      badge: "🧠 Smart"   },
+  { id: "cloudflare",  label: "Cloudflare",  badge: "10K/day"    },
   {
     id: "ollama",
     label: "Ollama",
@@ -93,11 +94,21 @@ const PROVIDERS: {
   },
 ];
 
+const CF_MODELS = [
+  { id: "llama-3.1-8b",  label: "Llama 3.1 8B",  tag: "Fast"         },
+  { id: "llama-3.3-70b", label: "Llama 3.3 70B",  tag: "Smart"        },
+  { id: "mistral-7b",    label: "Mistral 7B",      tag: "Lightweight"  },
+  { id: "qwen-1.5-7b",   label: "Qwen 1.5 7B",     tag: "Multilingual" },
+  { id: "gemma-7b",      label: "Gemma 7B",        tag: "Google"       },
+] as const;
+
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [activeMode, setActiveMode] = useState<Mode>("personal-docs");
   const [provider, setProvider] = useState<ProviderId | "">("");
+  const [cloudflareModel, setCloudflareModel] = useState("llama-3.1-8b");
+  const [showCfDropdown, setShowCfDropdown] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -105,12 +116,16 @@ export default function DashboardPage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const cfDropdownRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     llmSettings.getProvider()
       .then((r) => setProvider(r.data.provider as ProviderId))
+      .catch(() => {});
+    llmSettings.getCloudflareModel()
+      .then((r) => setCloudflareModel(r.data.model_key))
       .catch(() => {});
   }, []);
 
@@ -125,10 +140,24 @@ export default function DashboardPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Close CF dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (cfDropdownRef.current && !cfDropdownRef.current.contains(e.target as Node)) {
+        setShowCfDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   // Close mobile sidebar on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileSidebarOpen(false);
+      if (e.key === "Escape") {
+        setMobileSidebarOpen(false);
+        setShowCfDropdown(false);
+      }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
@@ -147,8 +176,21 @@ export default function DashboardPage() {
     }, 150);
   };
 
+  const switchCfModel = async (modelId: string) => {
+    setShowCfDropdown(false);
+    try {
+      await llmSettings.setCloudflareModel(modelId);
+      setCloudflareModel(modelId);
+      const label = CF_MODELS.find((m) => m.id === modelId)?.label ?? modelId;
+      toast.success(`Cloudflare model: ${label}`);
+    } catch {
+      toast.error("Failed to switch model");
+    }
+  };
+
   const switchProvider = async (p: ProviderId) => {
     if (p === provider || switching) return;
+    setShowCfDropdown(false);
     setSwitching(true);
     try {
       await llmSettings.setProvider(p);
@@ -276,7 +318,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
 
           {/* LLM provider toggle */}
-          <div className="relative">
+          <div className="relative" ref={cfDropdownRef}>
             {provider ? (
               <div className="flex items-center p-1 bg-gray-100 rounded-xl gap-0.5">
                 {PROVIDERS.map(({ id, label, badge, locked, lockReason }) =>
@@ -291,6 +333,39 @@ export default function DashboardPage() {
                         {lockReason}
                       </div>
                     </div>
+                  ) : id === "cloudflare" ? (
+                    <button
+                      key={id}
+                      onClick={() =>
+                        provider === "cloudflare"
+                          ? setShowCfDropdown((v) => !v)
+                          : switchProvider("cloudflare")
+                      }
+                      disabled={switching}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all disabled:cursor-not-allowed select-none",
+                        provider === "cloudflare"
+                          ? "bg-white text-orange-600 shadow-sm font-semibold"
+                          : "text-gray-500 hover:text-gray-800"
+                      )}
+                    >
+                      <span className="hidden sm:inline">{label}</span>
+                      <span className="sm:hidden font-mono font-bold leading-none" aria-hidden="true">CF</span>
+                      <span className={cn(
+                        "text-xs hidden sm:block",
+                        provider === "cloudflare" ? "text-orange-400" : "text-gray-400"
+                      )}>
+                        {provider === "cloudflare"
+                          ? (CF_MODELS.find((m) => m.id === cloudflareModel)?.tag ?? badge)
+                          : badge}
+                      </span>
+                      {provider === "cloudflare" && (
+                        <ChevronDown className={cn(
+                          "h-3 w-3 transition-transform duration-150",
+                          showCfDropdown && "rotate-180"
+                        )} />
+                      )}
+                    </button>
                   ) : (
                     <button
                       key={id}
@@ -313,7 +388,41 @@ export default function DashboardPage() {
                 )}
               </div>
             ) : (
-              <div className="h-9 w-36 sm:w-48 rounded-xl bg-gray-100 animate-pulse" />
+              <div className="h-9 w-36 sm:w-56 rounded-xl bg-gray-100 animate-pulse" />
+            )}
+
+            {/* Cloudflare model selector dropdown */}
+            {provider === "cloudflare" && showCfDropdown && (
+              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden min-w-[200px]">
+                <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                  Workers AI models
+                </p>
+                {CF_MODELS.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => switchCfModel(m.id)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors",
+                      cloudflareModel === m.id ? "bg-orange-50" : "hover:bg-gray-50"
+                    )}
+                  >
+                    <span className={cn(
+                      "font-medium",
+                      cloudflareModel === m.id ? "text-orange-700" : "text-gray-800"
+                    )}>
+                      {m.label}
+                    </span>
+                    <span className={cn(
+                      "ml-3 text-[10px] px-1.5 py-0.5 rounded-full",
+                      cloudflareModel === m.id
+                        ? "bg-orange-100 text-orange-600"
+                        : "bg-gray-100 text-gray-500"
+                    )}>
+                      {m.tag}
+                    </span>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 

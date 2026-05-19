@@ -2,6 +2,14 @@ from loguru import logger
 from app.core.config import settings
 
 
+CLOUDFLARE_MODELS: dict[str, str] = {
+    "llama-3.1-8b":  "@cf/meta/llama-3.1-8b-instruct",
+    "llama-3.3-70b": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "mistral-7b":    "@cf/mistral/mistral-7b-instruct-v0.2-lora",
+    "qwen-1.5-7b":   "@cf/qwen/qwen1.5-7b-chat-awq",
+    "gemma-7b":      "@cf/google/gemma-7b-it-lora",
+}
+
 OPENROUTER_MODELS: dict[str, str] = {
     "deepseek-r1":   "deepseek/deepseek-r1:free",
     "llama-3.3-70b": "meta-llama/llama-3.3-70b-instruct:free",
@@ -38,11 +46,12 @@ class LLMResponse:
         self.fallback_notice = fallback_notice
 
 
-VALID_PROVIDERS = {"groq", "gemini", "ollama", "openrouter"}
+VALID_PROVIDERS = {"groq", "gemini", "ollama", "openrouter", "cloudflare"}
 
 # Runtime-mutable state — initialized from .env, switchable without restart
 _current_provider: str = settings.llm_provider
 _current_openrouter_model: str = settings.openrouter_model
+_current_cloudflare_model: str = settings.cloudflare_model
 
 
 def get_current_provider() -> str:
@@ -59,6 +68,21 @@ def set_provider(provider: str) -> None:
 
 def get_current_openrouter_model() -> str:
     return _current_openrouter_model
+
+
+def get_current_cloudflare_model() -> str:
+    return _current_cloudflare_model
+
+
+def set_cloudflare_model(model_key: str) -> None:
+    global _current_cloudflare_model
+    if model_key not in CLOUDFLARE_MODELS:
+        raise ValueError(
+            f"Unknown Cloudflare model '{model_key}'. "
+            f"Valid keys: {', '.join(CLOUDFLARE_MODELS)}"
+        )
+    _current_cloudflare_model = model_key
+    logger.info(f"Cloudflare model switched to: {model_key}")
 
 
 def set_openrouter_model(model_id: str) -> None:
@@ -170,6 +194,30 @@ async def _call_openrouter(prompt: str, system: str, model: str | None = None) -
         return resp.json()["choices"][0]["message"]["content"]
 
 
+async def _call_cloudflare(prompt: str, system: str, model_key: str | None = None) -> str:
+    import httpx
+
+    key = model_key or _current_cloudflare_model
+    model_id = CLOUDFLARE_MODELS.get(key, CLOUDFLARE_MODELS["llama-3.1-8b"])
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+
+    url = (
+        f"https://api.cloudflare.com/client/v4/accounts"
+        f"/{settings.cloudflare_account_id}/ai/run/{model_id}"
+    )
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post(
+            url,
+            headers={"Authorization": f"Bearer {settings.cloudflare_api_token}"},
+            json={"messages": messages},
+        )
+        resp.raise_for_status()
+        return resp.json()["result"]["response"]
+
+
 async def _call_openrouter_with_fallback(
     prompt: str,
     system: str,
@@ -222,7 +270,10 @@ async def _dispatch(prompt: str, system: str, provider: str, openrouter_model: s
     if provider == "openrouter":
         model = openrouter_model or _current_openrouter_model
         return await _call_openrouter(prompt, system, model=model), model
-    raise ValueError(f"Unknown LLM provider: {provider}. Use groq | gemini | ollama | openrouter")
+    if provider == "cloudflare":
+        model_key = _current_cloudflare_model
+        return await _call_cloudflare(prompt, system, model_key=model_key), model_key
+    raise ValueError(f"Unknown LLM provider: {provider}. Use groq | gemini | ollama | openrouter | cloudflare")
 
 
 async def generate(
@@ -232,6 +283,28 @@ async def generate(
 ) -> LLMResponse:
     resolved = provider or _current_provider
     logger.debug(f"LLM call via provider={resolved}")
+
+    # Cloudflare: fall back to Groq on any failure
+    if resolved == "cloudflare":
+        try:
+            content, model = await _dispatch(prompt, system, "cloudflare")
+            return LLMResponse(content=content, provider="cloudflare", model=model)
+        except Exception as exc:
+            notice = "Cloudflare unavailable, using Groq instead"
+            logger.warning(f"{notice} — original error: {exc}")
+        try:
+            content, model = await _dispatch(prompt, system, "groq")
+            return LLMResponse(content=content, provider="groq", model=model, fallback_notice=notice)
+        except Exception as groq_exc:
+            if not _is_rate_limit(groq_exc):
+                raise
+        logger.error("Cloudflare and Groq both unavailable")
+        return LLMResponse(
+            content=ALL_RATE_LIMITED_MSG,
+            provider="none",
+            model="none",
+            fallback_notice=notice,
+        )
 
     # Ollama: local only, no cloud fallback
     if resolved == "ollama":

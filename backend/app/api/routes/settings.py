@@ -7,13 +7,15 @@ from app.engine.llm_factory import (
     get_current_provider, set_provider,
     get_current_openrouter_model, set_openrouter_model,
     OPENROUTER_MODELS,
+    get_current_cloudflare_model, set_cloudflare_model,
+    CLOUDFLARE_MODELS,
 )
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
 
 
 class ProviderRequest(BaseModel):
-    provider: Literal["groq", "gemini", "ollama", "openrouter"]
+    provider: Literal["groq", "gemini", "ollama", "openrouter", "cloudflare"]
 
 
 class ProviderResponse(BaseModel):
@@ -25,6 +27,15 @@ class OpenRouterModelRequest(BaseModel):
 
 
 class OpenRouterModelInfo(BaseModel):
+    id: str
+    model_id: str
+
+
+class CloudflareModelRequest(BaseModel):
+    model: str
+
+
+class CloudflareModelInfo(BaseModel):
     id: str
     model_id: str
 
@@ -70,3 +81,24 @@ async def update_openrouter_model(body: OpenRouterModelRequest):
         body.model,
     )
     return {"model": full_model, "model_key": model_key}
+
+
+@router.get("/cloudflare-models", response_model=list[CloudflareModelInfo])
+async def get_cloudflare_models():
+    return [CloudflareModelInfo(id=k, model_id=v) for k, v in CLOUDFLARE_MODELS.items()]
+
+
+@router.get("/cloudflare-model")
+async def get_cloudflare_model():
+    model_key = get_current_cloudflare_model()
+    return {"model": CLOUDFLARE_MODELS.get(model_key, model_key), "model_key": model_key}
+
+
+@router.post("/cloudflare-model")
+async def update_cloudflare_model(body: CloudflareModelRequest):
+    try:
+        set_cloudflare_model(body.model)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    model_key = get_current_cloudflare_model()
+    return {"model": CLOUDFLARE_MODELS.get(model_key, model_key), "model_key": model_key}
