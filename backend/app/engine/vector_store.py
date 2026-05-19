@@ -119,7 +119,7 @@ class VectorStore:
             SELECT id, text, metadata,
                    1 - (embedding <=> $4) AS score
             FROM embeddings
-            WHERE user_id = $1
+            WHERE user_id::text = $1
               AND mode    = $2
               AND namespace = $3
               {extra_filter}
@@ -146,9 +146,9 @@ class VectorStore:
             await conn.execute(
                 """
                 DELETE FROM embeddings
-                WHERE user_id   = $1
-                  AND mode      = $2
-                  AND namespace = $3
+                WHERE user_id::text = $1
+                  AND mode          = $2
+                  AND namespace     = $3
                   AND metadata @> $4::jsonb
                 """,
                 self.user_id,
@@ -162,7 +162,7 @@ class VectorStore:
         pool = await get_pg_pool()
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT COUNT(*) AS n FROM embeddings WHERE user_id=$1 AND mode=$2 AND namespace=$3",
+                "SELECT COUNT(*) AS n FROM embeddings WHERE user_id::text=$1 AND mode=$2 AND namespace=$3",
                 self.user_id, self.mode, self.namespace,
             )
         return int(row["n"])
@@ -171,7 +171,7 @@ class VectorStore:
         pool = await get_pg_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                "DELETE FROM embeddings WHERE user_id=$1 AND mode=$2 AND namespace=$3",
+                "DELETE FROM embeddings WHERE user_id::text=$1 AND mode=$2 AND namespace=$3",
                 self.user_id, self.mode, self.namespace,
             )
         logger.warning(f"Reset [user={self.user_id} mode={self.mode} ns={self.namespace}]")
@@ -182,7 +182,7 @@ async def list_all_collections(user_id: str) -> List[str]:
     pool = await get_pg_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT DISTINCT mode || '_' || namespace AS col FROM embeddings WHERE user_id=$1",
+            "SELECT DISTINCT mode || '_' || namespace AS col FROM embeddings WHERE user_id::text=$1",
             user_id,
         )
     return [row["col"] for row in rows]
