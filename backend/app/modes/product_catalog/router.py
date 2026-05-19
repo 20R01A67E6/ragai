@@ -1,18 +1,20 @@
 import io
 import json
 import time
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+from fastapi import APIRouter, Request, UploadFile, File, Form, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 import pandas as pd
 
 from app.auth.dependencies import get_current_user
+from app.core.limiter import limiter
 from app.db.database import get_db
 from app.db.models import Document, QueryLog
 from app.engine.vector_store import VectorStore
 from app.engine.storage import upload_file
 from app.engine.llm_factory import generate
 from app.utils.prompts import build_product_prompt
+from app.utils.security import validate_query, validate_file
 from app.schemas.catalog import ProductQueryRequest, ProductQueryResponse, ProductResult
 from app.schemas.common import DocumentResponse
 
@@ -25,13 +27,16 @@ def _row_to_text(row: dict) -> str:
 
 
 @router.post("/upload", response_model=DocumentResponse)
+@limiter.limit("10/minute")
 async def upload_catalog(
+    request: Request,
     file: UploadFile = File(...),
     namespace: str = Form(default="default"),
     name_column: str = Form(default="name"),
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    validate_file(file)
     content = await file.read()
     filename = file.filename.lower()
 
@@ -91,11 +96,14 @@ async def upload_catalog(
 
 
 @router.post("/recommend", response_model=ProductQueryResponse)
+@limiter.limit("30/minute")
 async def recommend_products(
+    request: Request,
     req: ProductQueryRequest,
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    validate_query(req.query)
     t0 = time.monotonic()
     store = VectorStore(mode=MODE, namespace=req.namespace, user_id=user_id)
     results = await store.query(req.query, n_results=req.top_k, where=req.filters)

@@ -1,10 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from loguru import logger
 
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.core.limiter import limiter
 from app.db.database import init_db
 from app.engine.vector_store import get_pg_pool, close_pg_pool
 from app.modes.personal_docs.router import router as personal_docs_router
@@ -38,6 +42,18 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown complete.")
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
+
+
 app = FastAPI(
     title="RAGAI Platform",
     description="Multi-mode Retrieval-Augmented Generation platform with auth and cloud storage",
@@ -48,6 +64,11 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# SecurityHeadersMiddleware added first so CORSMiddleware remains outermost
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,

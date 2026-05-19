@@ -2,7 +2,7 @@ import time
 import hashlib
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Request, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, cast, String
 import feedparser
@@ -10,12 +10,14 @@ import httpx
 from loguru import logger
 
 from app.auth.dependencies import get_current_user
+from app.core.limiter import limiter
 from app.db.database import get_db, AsyncSessionLocal
 from app.db.models import RssFeed, QueryLog
 from app.engine.vector_store import VectorStore
 from app.engine.chunker import chunk_text
 from app.engine.llm_factory import generate
 from app.utils.prompts import build_news_prompt
+from app.utils.security import validate_query
 from app.schemas.news import RssFeedCreate, RssFeedResponse, NewsSummaryRequest, NewsSummaryResponse
 
 router = APIRouter(prefix="/news-feed", tags=["News Feed Summarizer"])
@@ -143,15 +145,18 @@ async def refresh_feeds(
 
 
 @router.post("/summarize", response_model=NewsSummaryResponse)
+@limiter.limit("30/minute")
 async def summarize_news(
+    request: Request,
     req: NewsSummaryRequest,
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    query = req.topic or "latest news summary"
+    validate_query(query)
     t0 = time.monotonic()
     store = VectorStore(mode=MODE, namespace=req.namespace, user_id=user_id)
 
-    query = req.topic or "latest news summary"
     results = await store.query(query, n_results=req.top_k)
 
     if not results:

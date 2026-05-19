@@ -1,12 +1,13 @@
 import time
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+from fastapi import APIRouter, Request, UploadFile, File, Form, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, cast, String
 from loguru import logger
 
 from app.auth.dependencies import get_current_user
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.db.database import get_db
 from app.db.models import Document, QueryLog
 from app.engine.vector_store import VectorStore
@@ -15,6 +16,7 @@ from app.engine.chunker import chunk_text
 from app.engine.llm_factory import generate
 from app.utils.file_parser import parse_file, SUPPORTED_EXTENSIONS
 from app.utils.prompts import build_rag_prompt
+from app.utils.security import validate_query, validate_file
 from app.schemas.common import QueryRequest, QueryResponse, DocumentResponse, SourceDocument
 
 router = APIRouter(prefix="/personal-docs", tags=["Personal Docs Q&A"])
@@ -22,12 +24,15 @@ MODE = "personal_docs"
 
 
 @router.post("/upload", response_model=DocumentResponse)
+@limiter.limit("10/minute")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...),
     namespace: str = Form(default="default"),
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    validate_file(file)
     ext = Path(file.filename).suffix.lower()
     if ext not in SUPPORTED_EXTENSIONS:
         raise HTTPException(400, f"Unsupported file type: {ext}")
@@ -77,11 +82,14 @@ async def upload_document(
 
 
 @router.post("/query", response_model=QueryResponse)
+@limiter.limit("30/minute")
 async def query_docs(
+    request: Request,
     req: QueryRequest,
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    validate_query(req.query)
     t0 = time.monotonic()
     store = VectorStore(mode=MODE, namespace=req.namespace, user_id=user_id)
     results = await store.query(req.query, n_results=req.top_k)

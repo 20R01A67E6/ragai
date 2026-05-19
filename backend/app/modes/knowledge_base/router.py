@@ -1,12 +1,13 @@
 import time
 from pathlib import Path
 from typing import List
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Request, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
 from app.auth.dependencies import get_current_user
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.db.database import get_db, AsyncSessionLocal
 from app.db.models import Document, QueryLog
 from app.engine.vector_store import VectorStore
@@ -15,6 +16,7 @@ from app.engine.chunker import chunk_text
 from app.engine.llm_factory import generate
 from app.utils.file_parser import parse_file, SUPPORTED_EXTENSIONS
 from app.utils.prompts import build_rag_prompt
+from app.utils.security import validate_query, validate_file
 from app.schemas.common import QueryRequest, QueryResponse, DocumentResponse, SourceDocument, CollectionStats
 
 router = APIRouter(prefix="/knowledge-base", tags=["Knowledge Base Bot"])
@@ -46,13 +48,17 @@ async def _ingest_file(content: bytes, filename: str, namespace: str, doc_id: in
 
 
 @router.post("/ingest", response_model=List[DocumentResponse])
+@limiter.limit("10/minute")
 async def bulk_ingest(
+    request: Request,
     files: List[UploadFile] = File(...),
     namespace: str = Form(default="default"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    for file in files:
+        validate_file(file)
     docs = []
     for file in files:
         ext = Path(file.filename).suffix.lower()
@@ -80,11 +86,14 @@ async def bulk_ingest(
 
 
 @router.post("/query", response_model=QueryResponse)
+@limiter.limit("30/minute")
 async def query_kb(
+    request: Request,
     req: QueryRequest,
     user_id: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    validate_query(req.query)
     t0 = time.monotonic()
     store = VectorStore(mode=MODE, namespace=req.namespace, user_id=user_id)
     results = await store.query(req.query, n_results=req.top_k)
