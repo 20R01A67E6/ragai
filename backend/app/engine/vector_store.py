@@ -24,6 +24,7 @@ from loguru import logger
 from app.core.config import settings
 from app.engine.embeddings import get_embedding, get_embeddings_batch
 from app.engine.reranker import rerank
+from app.engine.llm_factory import generate
 
 _pool: asyncpg.Pool | None = None
 
@@ -33,6 +34,7 @@ BM25_WEIGHT = 0.3
 CANDIDATE_MULTIPLIER = 4       # over-fetch this * top_k before reranking
 MIN_CANDIDATES = 20            # ...but always consider at least this many
 BM25_CORPUS_CAP = 5000         # bound in-memory BM25 index size per query
+QUERY_EXPANSION_N = 3          # alternative phrasings generated per query
 
 
 async def _init_conn(conn: asyncpg.Connection) -> None:
@@ -139,6 +141,57 @@ async def bm25_search(
     ]
 
 
+def _parse_query_list(raw: str) -> List[str]:
+    """Best-effort extraction of a JSON array of query strings from LLM output."""
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        # LLMs often wrap the array in prose or code fences — grab the first array.
+        match = re.search(r"\[.*\]", raw or "", re.DOTALL)
+        if not match:
+            return []
+        try:
+            data = json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return []
+    if not isinstance(data, list):
+        return []
+    return [str(q).strip() for q in data if str(q).strip()]
+
+
+async def expand_query(query: str) -> List[str]:
+    """Generate alternative phrasings via Groq.
+
+    Returns the original query followed by up to QUERY_EXPANSION_N distinct
+    variants. Any failure (parse error, provider down) degrades to [query].
+    """
+    prompt = (
+        f'Generate {QUERY_EXPANSION_N} alternative search queries for: "{query}"\n'
+        "Return only the queries as a JSON array.\n"
+        'Example: ["query1", "query2", "query3"]'
+    )
+    try:
+        response = await generate(
+            prompt=prompt,
+            system="You are a search query expander.",
+            provider="groq",
+        )
+        variants = _parse_query_list(response.content)[:QUERY_EXPANSION_N]
+    except Exception as e:
+        logger.warning(f"Query expansion failed ({e}); using original query only")
+        variants = []
+
+    # De-duplicate case-insensitively, original first.
+    seen = {query.lower()}
+    expanded = [query]
+    for v in variants:
+        if v.lower() not in seen:
+            seen.add(v.lower())
+            expanded.append(v)
+    logger.debug(f"Expanded query into {len(expanded)} variants")
+    return expanded
+
+
 class VectorStore:
     def __init__(self, mode: str, namespace: str = "default", user_id: str = ""):
         self.mode = mode
@@ -232,23 +285,19 @@ class VectorStore:
             for row in rows
         ]
 
-    async def query(
+    async def _hybrid_candidates(
         self,
         query_text: str,
-        n_results: int = 5,
-        where: Optional[Dict[str, Any]] = None,
-        rerank_results: bool = True,
+        candidate_k: int,
+        where: Optional[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        """Hybrid semantic + BM25 retrieval, fused and reranked to `n_results`."""
-        candidate_k = max(n_results * CANDIDATE_MULTIPLIER, MIN_CANDIDATES)
-
+        """Semantic + BM25 for a single query, fused with weighted scores."""
         semantic = await self._semantic_search(query_text, candidate_k, where)
         keyword = await bm25_search(
             query_text, self.user_id, self.mode, self.namespace,
             top_k=candidate_k, where=where,
         )
 
-        # Weighted fusion over the union of both candidate sets.
         fused: Dict[str, Dict[str, Any]] = {}
         for r in semantic:
             fused[r["id"]] = {**r, "_sem": r["score"], "_bm25": 0.0}
@@ -259,19 +308,43 @@ class VectorStore:
             else:
                 fused[r["id"]] = {**r, "_sem": 0.0, "_bm25": r["score"]}
 
-        candidates: List[Dict[str, Any]] = []
-        for entry in fused.values():
-            hybrid = SEMANTIC_WEIGHT * entry["_sem"] + BM25_WEIGHT * entry["_bm25"]
-            candidates.append(
-                {
-                    "id": entry["id"],
-                    "text": entry["text"],
-                    "metadata": entry["metadata"],
-                    "score": float(hybrid),
-                }
-            )
-        candidates.sort(key=lambda c: c["score"], reverse=True)
+        return [
+            {
+                "id": entry["id"],
+                "text": entry["text"],
+                "metadata": entry["metadata"],
+                "score": SEMANTIC_WEIGHT * entry["_sem"] + BM25_WEIGHT * entry["_bm25"],
+            }
+            for entry in fused.values()
+        ]
 
+    async def query(
+        self,
+        query_text: str,
+        n_results: int = 5,
+        where: Optional[Dict[str, Any]] = None,
+        rerank_results: bool = True,
+        expand: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Query-expanded hybrid retrieval, merged and reranked to `n_results`.
+
+        Pipeline: expand_query (Groq) -> hybrid search per variant -> merge &
+        dedupe (best score per chunk) -> rerank against the original query.
+        """
+        candidate_k = max(n_results * CANDIDATE_MULTIPLIER, MIN_CANDIDATES)
+        queries = await expand_query(query_text) if expand else [query_text]
+
+        # Search each variant and keep the best hybrid score seen per chunk.
+        merged: Dict[str, Dict[str, Any]] = {}
+        for q in queries:
+            for c in await self._hybrid_candidates(q, candidate_k, where):
+                existing = merged.get(c["id"])
+                if existing is None or c["score"] > existing["score"]:
+                    merged[c["id"]] = c
+
+        candidates = sorted(merged.values(), key=lambda c: c["score"], reverse=True)
+
+        # Rerank against the ORIGINAL query — that is the user's actual intent.
         if rerank_results:
             return rerank(query_text, candidates, top_n=n_results)
         return candidates[:n_results]
