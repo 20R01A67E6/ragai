@@ -7,7 +7,7 @@ Query pipeline:
   1. Semantic search   — pgvector cosine ANN over 768-dim BGE embeddings
   2. Keyword search    — BM25 over the stored chunk text
   3. Fusion            — 0.7 * semantic + 0.3 * BM25 (both min-max normalised)
-  4. Rerank            — FlashRank cross-encoder trims the fused pool to top-k
+  4. Rerank            — keyword-overlap rerank trims the fused pool to top-k
 """
 from __future__ import annotations
 

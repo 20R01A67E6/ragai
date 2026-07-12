@@ -1,51 +1,36 @@
 """
-Local cross-encoder reranking with FlashRank (no external API).
+Lightweight, memory-free reranking.
 
-The model (~34 MB, ms-marco-MiniLM-L-12-v2) is downloaded and loaded lazily on
-first use so app startup stays fast and offline boots don't fail. Any reranking
-error degrades gracefully to the input (hybrid-search) order.
+Replaces the FlashRank cross-encoder (which loaded a model that blew the 512MB
+Render free-tier limit) with a pure-Python keyword-overlap rerank: no model
+download, no extra memory, no external API.
 """
 from typing import Dict, List
 
-from loguru import logger
-
-_MODEL_NAME = "ms-marco-MiniLM-L-12-v2"
-_ranker = None
-
-
-def _get_ranker():
-    global _ranker
-    if _ranker is None:
-        from flashrank import Ranker
-
-        _ranker = Ranker(model_name=_MODEL_NAME)
-        logger.info(f"Loaded FlashRank reranker: {_MODEL_NAME}")
-    return _ranker
-
 
 def rerank(query: str, chunks: List[Dict], top_n: int = 5) -> List[Dict]:
-    """Reorder `chunks` by cross-encoder relevance to `query`, keeping the top_n."""
-    if not chunks:
-        return []
+    """
+    Simple reranking based on keyword overlap score.
+    No external model needed - works within 512MB limit.
+    """
     if len(chunks) <= top_n:
         return chunks
 
-    try:
-        from flashrank import RerankRequest
+    query_words = set(query.lower().split())
 
-        passages = [
-            {"id": i, "text": c.get("content") or c.get("text", "")}
-            for i, c in enumerate(chunks)
-        ]
-        results = _get_ranker().rerank(RerankRequest(query=query, passages=passages))
+    def score_chunk(chunk: dict) -> float:
+        content = chunk.get("content", chunk.get("text", "")).lower()
+        content_words = set(content.split())
 
-        ranked: List[Dict] = []
-        for r in results[:top_n]:
-            chunk = dict(chunks[r["id"]])
-            # Surface the cross-encoder relevance as the reported score.
-            chunk["score"] = float(r.get("score", chunk.get("score", 0.0)))
-            ranked.append(chunk)
-        return ranked
-    except Exception as e:  # pragma: no cover - resilience path
-        logger.warning(f"Rerank failed ({e}); falling back to hybrid order")
-        return chunks[:top_n]
+        # Keyword overlap score
+        overlap = len(query_words & content_words)
+        overlap_score = overlap / max(len(query_words), 1)
+
+        # Existing hybrid score
+        existing_score = chunk.get("score", 0.5)
+
+        # Combined score
+        return 0.6 * existing_score + 0.4 * overlap_score
+
+    scored = sorted(chunks, key=score_chunk, reverse=True)
+    return scored[:top_n]
