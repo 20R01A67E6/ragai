@@ -67,7 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_rss_feeds_user_id ON rss_feeds(user_id);
 
 -- ============================================================
 -- Vector Embeddings (replaces ChromaDB)
--- 384 dimensions = all-MiniLM-L6-v2 output size
+-- 768 dimensions = Cloudflare BGE base-en-v1.5 output size
 -- ============================================================
 CREATE TABLE IF NOT EXISTS embeddings (
     id          TEXT PRIMARY KEY,
@@ -76,8 +76,9 @@ CREATE TABLE IF NOT EXISTS embeddings (
     namespace   TEXT NOT NULL DEFAULT 'default',
     document_id BIGINT REFERENCES documents(id) ON DELETE CASCADE,
     text        TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL DEFAULT 0,
     metadata    JSONB NOT NULL DEFAULT '{}',
-    embedding   VECTOR(384) NOT NULL,
+    embedding   VECTOR(768) NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

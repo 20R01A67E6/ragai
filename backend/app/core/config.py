@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     cloudflare_api_token: str = Field(default="", alias="CLOUDFLARE_API_TOKEN")
     cloudflare_model: str = Field(default="llama-3.1-8b", alias="CLOUDFLARE_MODEL")
 
-    # Embeddings
-    embedding_model: str = Field(default="all-MiniLM-L6-v2", alias="EMBEDDING_MODEL")
+    # Embeddings — Cloudflare BGE base-en-v1.5 (768-dim)
+    embedding_model: str = Field(default="@cf/baai/bge-base-en-v1.5", alias="EMBEDDING_MODEL")
     embedding_device: str = Field(default="cpu", alias="EMBEDDING_DEVICE")
 
     # Supabase

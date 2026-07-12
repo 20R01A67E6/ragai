@@ -24,6 +24,12 @@ ollama==0.6.2
 # Scheduler
 apscheduler==3.10.4
 
+# RAG pipeline — chunking, hybrid retrieval, reranking
+langchain-text-splitters>=0.3.0
+rank-bm25>=0.2.2
+flashrank>=0.2.0
+tiktoken>=0.7.0
+
 # Data handling
 pandas==2.2.3
 feedparser==6.0.11

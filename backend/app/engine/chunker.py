@@ -1,6 +1,27 @@
 import re
 from typing import List, Tuple, Dict
+
+import tiktoken
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from app.core.config import settings
+
+# Token-aware length so `chunk_size` maps to model tokens rather than characters.
+# BGE-base accepts up to 512 tokens per input, so token-sized chunks never truncate.
+_ENC = tiktoken.get_encoding("cl100k_base")
+
+
+def _token_len(text: str) -> int:
+    return len(_ENC.encode(text))
+
+
+def _splitter(chunk_size: int, chunk_overlap: int) -> RecursiveCharacterTextSplitter:
+    return RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=["\n\n", "\n", ".", "!", "?", " ", ""],
+        length_function=_token_len,
+    )
 
 
 def chunk_text(
@@ -8,21 +29,31 @@ def chunk_text(
     chunk_size: int | None = None,
     chunk_overlap: int | None = None,
 ) -> List[str]:
+    """Semantic-boundary chunking via LangChain's RecursiveCharacterTextSplitter."""
     chunk_size = chunk_size or settings.default_chunk_size
     chunk_overlap = chunk_overlap or settings.default_chunk_overlap
 
     text = re.sub(r"\n{3,}", "\n\n", text.strip())
-    words = text.split()
-    chunks, start = [], 0
+    if not text:
+        return []
 
-    while start < len(words):
-        end = min(start + chunk_size, len(words))
-        chunks.append(" ".join(words[start:end]))
-        if end == len(words):
-            break
-        start += chunk_size - chunk_overlap
-
+    chunks = _splitter(chunk_size, chunk_overlap).split_text(text)
     return [c for c in chunks if c.strip()]
+
+
+def chunk_document(text: str, filename: str) -> List[Dict]:
+    """Structured chunks carrying positional metadata for a full document ingest."""
+    chunks = chunk_text(text)
+    total = len(chunks)
+    return [
+        {
+            "content": chunk,
+            "chunk_index": i,
+            "total_chunks": total,
+            "filename": filename,
+        }
+        for i, chunk in enumerate(chunks)
+    ]
 
 
 def chunk_code(

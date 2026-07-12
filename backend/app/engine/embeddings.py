@@ -1,31 +1,77 @@
-import hashlib
+"""
+Real semantic embeddings via Cloudflare Workers AI (BGE base v1.5).
+
+Replaces the previous hash-based placeholder. BGE-base-en-v1.5 returns
+768-dimensional vectors — the `embeddings.embedding` column must be VECTOR(768).
+"""
 from typing import List
 
-# Must match the VECTOR(384) column in the pgvector schema.
-# SHA-256 yields 32 bytes per round; 12 rounds × 32 = 384 floats exactly.
-EMBED_DIM = 384
+import httpx
+from loguru import logger
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
+
+from app.core.config import settings
+
+# BGE-base-en-v1.5 output size. Must match the VECTOR(768) column in pgvector.
+EMBED_DIM = 768
+
+_MODEL = "@cf/baai/bge-base-en-v1.5"
+
+# Cloudflare accepts a batched `text` array; keep sub-batches modest so a single
+# request stays under size/timeout limits even for large uploads.
+_MAX_BATCH = 100
 
 
-def _hash_embed(text: str) -> List[float]:
-    """
-    Deterministic 384-dim embedding via repeated SHA-256.
-    Same text always produces the same vector. Zero startup memory, no ML deps.
-
-    Limitation: not semantic — similar texts will NOT have similar vectors,
-    so retrieval quality is low. Replace with a real embedding API or a small
-    model once the deployment memory budget allows.
-    """
-    vector: List[float] = []
-    chunk = text.encode("utf-8", errors="replace")
-    while len(vector) < EMBED_DIM:
-        chunk = hashlib.sha256(chunk).digest()          # 32 bytes per round
-        vector.extend((b - 128) / 128.0 for b in chunk) # normalise to [-1, 1]
-    return vector[:EMBED_DIM]
+def _endpoint() -> str:
+    if not settings.cloudflare_account_id or not settings.cloudflare_api_token:
+        raise RuntimeError(
+            "Cloudflare embeddings not configured — set CLOUDFLARE_ACCOUNT_ID "
+            "and CLOUDFLARE_API_TOKEN in the environment."
+        )
+    return (
+        f"https://api.cloudflare.com/client/v4/accounts/"
+        f"{settings.cloudflare_account_id}/ai/run/{_MODEL}"
+    )
 
 
-def embed_texts(texts: List[str]) -> List[List[float]]:
-    return [_hash_embed(t) for t in texts]
+@retry(
+    reraise=True,
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=0.5, min=0.5, max=4),
+    retry=retry_if_exception_type(httpx.HTTPError),
+)
+async def _embed_request(texts: List[str]) -> List[List[float]]:
+    headers = {
+        "Authorization": f"Bearer {settings.cloudflare_api_token}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(_endpoint(), headers=headers, json={"text": texts})
+        resp.raise_for_status()
+        payload = resp.json()
+
+    if not payload.get("success", True):
+        raise RuntimeError(f"Cloudflare embedding error: {payload.get('errors')}")
+    return payload["result"]["data"]
 
 
-def embed_query(query: str) -> List[float]:
-    return _hash_embed(query)
+async def get_embeddings_batch(texts: List[str]) -> List[List[float]]:
+    """Get 768-dim BGE embeddings for many texts, sub-batched for reliability."""
+    if not texts:
+        return []
+    out: List[List[float]] = []
+    for i in range(0, len(texts), _MAX_BATCH):
+        out.extend(await _embed_request(texts[i : i + _MAX_BATCH]))
+    logger.debug(f"Embedded {len(texts)} texts via Cloudflare BGE")
+    return out
+
+
+async def get_embedding(text: str) -> List[float]:
+    """Get a single 768-dim BGE embedding (e.g. for a query)."""
+    data = await _embed_request([text])
+    return data[0]
