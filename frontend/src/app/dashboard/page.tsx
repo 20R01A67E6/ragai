@@ -2,13 +2,14 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AIChat } from "@/components/modes/AIChat";
 import { PersonalDocs } from "@/components/modes/PersonalDocs";
 import { KnowledgeBase } from "@/components/modes/KnowledgeBase";
 import { ProductCatalog } from "@/components/modes/ProductCatalog";
 import { CodebaseAssistant } from "@/components/modes/CodebaseAssistant";
 import { NewsFeed } from "@/components/modes/NewsFeed";
 import {
-  FileText, Database, ShoppingBag, Code2, Newspaper,
+  MessageSquare, FileText, Database, ShoppingBag, Code2, Newspaper,
   Brain, History, LogOut, User, HelpCircle, Info, Lock,
   Menu, X, ChevronLeft, ChevronRight, ChevronDown,
 } from "lucide-react";
@@ -29,6 +30,14 @@ const MODES: {
   example: string;
   tooltip: string;
 }[] = [
+  {
+    id: "ai-chat",
+    label: "AI Chat",
+    icon: MessageSquare,
+    desc: "Chat with AI directly. No files needed.",
+    example: "Explain quantum computing simply",
+    tooltip: "A direct ChatGPT-style assistant — ask anything, no uploads or setup required.",
+  },
   {
     id: "personal-docs",
     label: "Personal Docs",
@@ -105,7 +114,7 @@ const CF_MODELS = [
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [activeMode, setActiveMode] = useState<Mode>("personal-docs");
+  const [activeMode, setActiveMode] = useState<Mode>("ai-chat");
   const [provider, setProvider] = useState<ProviderId | "">("");
   const [cloudflareModel, setCloudflareModel] = useState("llama-3.1-8b");
   const [showCfDropdown, setShowCfDropdown] = useState(false);
@@ -212,6 +221,7 @@ export default function DashboardPage() {
   };
 
   const ActiveComponent = {
+    "ai-chat": AIChat,
     "personal-docs": PersonalDocs,
     "knowledge-base": KnowledgeBase,
     "product-catalog": ProductCatalog,

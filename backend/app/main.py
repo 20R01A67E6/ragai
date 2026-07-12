@@ -11,6 +11,7 @@ from app.core.logging import setup_logging
 from app.core.limiter import limiter
 from app.db.database import init_db
 from app.engine.vector_store import get_pg_pool, close_pg_pool
+from app.modes.chat.router import router as chat_router
 from app.modes.personal_docs.router import router as personal_docs_router
 from app.modes.knowledge_base.router import router as kb_router
 from app.modes.product_catalog.router import router as catalog_router
@@ -77,6 +78,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(chat_router, prefix="/api")
 app.include_router(personal_docs_router, prefix="/api")
 app.include_router(kb_router, prefix="/api")
 app.include_router(catalog_router, prefix="/api")

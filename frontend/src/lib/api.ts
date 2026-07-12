@@ -14,6 +14,15 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// ── AI Chat ───────────────────────────────────────────────────────────────────
+export const chat = {
+  message: (
+    message: string,
+    conversation_history: { role: "user" | "assistant"; content: string }[] = [],
+    llm_provider?: string,
+  ) => api.post("/chat/message", { message, conversation_history, llm_provider }),
+};
+
 // ── Personal Docs ─────────────────────────────────────────────────────────────
 export const personalDocs = {
   upload: (file: File, namespace = "default") => {

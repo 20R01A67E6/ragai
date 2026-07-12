@@ -78,7 +78,16 @@ export interface NewsSummaryResponse {
   fallback_notice?: string;
 }
 
+export interface ChatMessageResponse {
+  response: string;
+  model_used: string;
+  latency_ms: number;
+  llm_provider: string;
+  fallback_notice?: string;
+}
+
 export type Mode =
+  | "ai-chat"
   | "personal-docs"
   | "knowledge-base"
   | "product-catalog"
